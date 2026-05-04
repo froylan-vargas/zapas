@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Zapas.Api (HTTP)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build Zapas.Api",
+      "program": "${workspaceFolder}/Zapas.Api/bin/Debug/net10.0/Zapas.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/Zapas.Api",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(http://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5222"
+      }
+    },
+    {
+      "name": "Debug Zapas.Api (HTTPS)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build Zapas.Api",
+      "program": "${workspaceFolder}/Zapas.Api/bin/Debug/net10.0/Zapas.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/Zapas.Api",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7146;http://localhost:5222"
+      }
+    }
+  ]
+}
