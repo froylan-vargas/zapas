@@ -1,6 +1,6 @@
-using System;
-using Dynastream.Fit;
 using Microsoft.AspNetCore.Mvc;
+using Zapas.Api.DTOs;
+using Zapas.Api.Services;
 
 namespace Zapas.Api.Controllers;
 
@@ -9,88 +9,67 @@ namespace Zapas.Api.Controllers;
 public sealed class SessionsController : ControllerBase
 {
     private readonly ILogger<SessionsController> _logger;
-    private readonly IWebHostEnvironment _environment;
+    private readonly ISessionService _sessionService;
 
-    public SessionsController(ILogger<SessionsController> logger, IWebHostEnvironment environment)
+    public SessionsController(
+        ILogger<SessionsController> logger,
+        ISessionService sessionService)
     {
         _logger = logger;
-        _environment = environment;
+        _sessionService = sessionService;
     }
 
     [HttpGet]
     public IActionResult GetSessions()
     {
         _logger.LogInformation("Fetching sessions");
-        return Ok("This is a placeholder for sessions data.");
+        var sessions = _sessionService.GetSessions()
+            .Select(SessionDto.FromModel)
+            .ToList();
+
+        return Ok(sessions);
     }
 
-    [HttpGet("info")]
-    public IActionResult GetSessionsInfo()
+    [HttpGet("{id:guid}")]
+    public IActionResult GetSession(Guid id)
     {
-        var filePath = Path.Combine(
-            _environment.ContentRootPath,
-            "TestData",
-            "Activities",
-            "400meters.fit");
+        var session = _sessionService.GetSessionById(id);
 
-        if (!System.IO.File.Exists(filePath))
+        if (session is null)
         {
-            return NotFound($"FIT file not found at {filePath}");
+            return NotFound();
         }
 
-        var intervals = ExtractRunIntervals(filePath);
-
-        return Ok(intervals);
+        return Ok(SessionDto.FromModel(session));
     }
 
-    private static List<RunIntervalInfo> ExtractRunIntervals(string filePath)
+    [HttpPost]
+    [Consumes("multipart/form-data")]
+    public IActionResult CreateSession(IFormFile? file)
     {
-        using var fitStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        _logger.LogInformation("Creating a new session from uploaded FIT file");
 
-        var decoder = new Decode();
-        var broadcaster = new MesgBroadcaster();
-        var intervals = new List<RunIntervalInfo>();
+        using var fitStream = file?.OpenReadStream() ?? Stream.Null;
+        var result = _sessionService.CreateSession(fitStream, file?.FileName, file?.Length ?? 0);
+        var response = ToCreateSessionResponse(result);
 
-        decoder.MesgEvent += broadcaster.OnMesg;
-        decoder.MesgDefinitionEvent += broadcaster.OnMesgDefinition;
-
-        broadcaster.LapMesgEvent += (_, args) =>
+        return result.State switch
         {
-            if (args.mesg is not LapMesg lap)
-            {
-                return;
-            }
-
-            if (lap.GetSport() != Sport.Running || lap.GetIntensity() != Intensity.Active)
-            {
-                return;
-            }
-
-            var distance = lap.GetTotalDistance();
-            var duration = lap.GetTotalTimerTime();
-
-            if (distance is null || duration is null || distance <= 0 || duration <= 0)
-            {
-                return;
-            }
-
-            intervals.Add(new RunIntervalInfo(
-                Distance: distance.Value,
-                Duration: TimeSpan.FromSeconds(duration.Value),
-                AverageHeartRate: lap.GetAvgHeartRate(),
-                MaxHeartRate: lap.GetMaxHeartRate(),
-                Pace: TimeSpan.FromSeconds(duration.Value / (distance.Value / 1000))));
+            CreateSessionState.Stored => CreatedAtAction(
+                nameof(GetSession),
+                new { id = response.Session?.Id },
+                response),
+            CreateSessionState.Rejected => BadRequest(response),
+            CreateSessionState.Failed => BadRequest(response),
+            _ => StatusCode(StatusCodes.Status500InternalServerError, response)
         };
+    }
 
-        decoder.Read(fitStream);
-
-        return intervals;
+    private static CreateSessionResponseDto ToCreateSessionResponse(CreateSessionResult result)
+    {
+        return new CreateSessionResponseDto(
+            State: result.State.ToString(),
+            Session: result.Session is null ? null : SessionDto.FromModel(result.Session),
+            Error: result.Error);
     }
 }
-
-public sealed record RunIntervalInfo(
-    float Distance,
-    TimeSpan Duration,
-    byte? AverageHeartRate,
-    byte? MaxHeartRate,
-    TimeSpan Pace);
