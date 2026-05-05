@@ -5,6 +5,9 @@ out/
 artifacts/
 TestResults/
 
+# Documentation
+docs/
+
 # User-specific Visual Studio files
 .vs/
 *.user

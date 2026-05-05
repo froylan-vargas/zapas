@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Zapas.Api.Data;
 using Zapas.Api.DTOs;
 using Zapas.Api.Entities;
+using Zapas.Api.Extensions;
 using Zapas.Api.Models;
 
 namespace Zapas.Api.Repositories;
@@ -89,8 +90,7 @@ public class SessionRepository : ISessionRepository
         };
 
         return await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .GetPage(page, pageSize)
             .Select(entity => new SessionSummary(
                 entity.Id,
                 entity.Name ?? "Unknown session",
