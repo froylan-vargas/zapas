@@ -14,6 +14,16 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "format",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "format",
+        "${workspaceFolder}/Zapas.slnx"
+      ],
+      "problemMatcher": "$msCompile"
     }
   ]
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace Zapas.Api.Models;
 
 public sealed record RunInterval(

@@ -34,6 +34,7 @@ project.assets.json
 appsettings.Local.json
 appsettings.*.Local.json
 secrets.json
+zapas.db*
 
 # Environment files
 .env

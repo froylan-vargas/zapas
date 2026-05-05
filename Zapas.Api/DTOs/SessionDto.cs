@@ -5,12 +5,13 @@ namespace Zapas.Api.DTOs;
 public sealed record SessionDto(
     Guid Id,
     string Name,
-    float? TotalDistance,
-    TimeSpan? TotalTime,
-    TimeSpan? AveragePace,
-    DateTime? StartTime,
-    DateTime? Timestamp,
-    DateTime CreatedAt,
+    double TotalDistance,
+    TimeSpan TotalDuration,
+    TimeSpan AveragePace,
+    byte? AverageHeartRate,
+    byte? MaxHeartRate,
+    DateTimeOffset StartTime,
+    DateTimeOffset CreatedAt,
     IReadOnlyList<RunIntervalDto> RunIntervals)
 {
     public static SessionDto FromModel(Session session)
@@ -19,10 +20,11 @@ public sealed record SessionDto(
             Id: session.Id,
             Name: session.Name,
             TotalDistance: session.TotalDistance,
-            TotalTime: session.TotalTime,
+            TotalDuration: session.TotalDuration,
             AveragePace: session.AveragePace,
+            AverageHeartRate: session.AverageHeartRate,
+            MaxHeartRate: session.MaxHeartRate,
             StartTime: session.StartTime,
-            Timestamp: session.Timestamp,
             CreatedAt: session.CreatedAt,
             RunIntervals: session.RunIntervals
                 .Select(interval => new RunIntervalDto(

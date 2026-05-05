@@ -20,20 +20,21 @@ public sealed class SessionsController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetSessions()
+    public async Task<IActionResult> GetSessions(
+        [FromQuery] GetSessionsRequestDto request,
+        CancellationToken cancellationToken)
     {
         _logger.LogInformation("Fetching sessions");
-        var sessions = _sessionService.GetSessions()
-            .Select(SessionDto.FromModel)
-            .ToList();
-
-        return Ok(sessions);
+        var sessions = await _sessionService.GetSessionsAsync(request, cancellationToken);
+        return Ok(sessions
+            .Select(SessionSummaryDto.FromModel)
+            .ToList());
     }
 
     [HttpGet("{id:guid}")]
-    public IActionResult GetSession(Guid id)
+    public async Task<IActionResult> GetSession(Guid id, CancellationToken cancellationToken)
     {
-        var session = _sessionService.GetSessionById(id);
+        var session = await _sessionService.GetSessionByIdAsync(id, cancellationToken);
 
         if (session is null)
         {
@@ -45,12 +46,16 @@ public sealed class SessionsController : ControllerBase
 
     [HttpPost]
     [Consumes("multipart/form-data")]
-    public IActionResult CreateSession(IFormFile? file)
+    public async Task<IActionResult> CreateSession(IFormFile? file, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating a new session from uploaded FIT file");
 
         using var fitStream = file?.OpenReadStream() ?? Stream.Null;
-        var result = _sessionService.CreateSession(fitStream, file?.FileName, file?.Length ?? 0);
+        var result = await _sessionService.CreateSessionAsync(
+            fitStream,
+            file?.FileName,
+            file?.Length ?? 0,
+            cancellationToken);
         var response = ToCreateSessionResponse(result);
 
         return result.State switch

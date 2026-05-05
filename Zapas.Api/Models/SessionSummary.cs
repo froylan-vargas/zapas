@@ -1,6 +1,6 @@
 namespace Zapas.Api.Models;
 
-public sealed record Session(
+public sealed record SessionSummary(
     Guid Id,
     string Name,
     double TotalDistance,
@@ -9,5 +9,4 @@ public sealed record Session(
     byte? AverageHeartRate,
     byte? MaxHeartRate,
     DateTimeOffset StartTime,
-    DateTimeOffset CreatedAt,
-    List<RunInterval> RunIntervals);
+    DateTimeOffset CreatedAt);

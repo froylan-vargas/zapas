@@ -1,4 +1,5 @@
 using Dynastream.Fit;
+using Zapas.Api.DTOs;
 using Zapas.Api.Models;
 using Zapas.Api.Repositories;
 
@@ -13,17 +14,23 @@ public sealed class SessionService : ISessionService
         _sessionRepository = sessionRepository;
     }
 
-    public IReadOnlyList<Session> GetSessions()
+    public async Task<IReadOnlyList<SessionSummary>> GetSessionsAsync(
+        GetSessionsRequestDto request,
+        CancellationToken cancellationToken)
     {
-        return _sessionRepository.GetAllSessions();
+        return await _sessionRepository.GetSessionsAsync(request, cancellationToken);
     }
 
-    public Session? GetSessionById(Guid id)
+    public async Task<Session?> GetSessionByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return _sessionRepository.GetSessionById(id);
+        return await _sessionRepository.GetSessionByIdAsync(id, cancellationToken);
     }
 
-    public CreateSessionResult CreateSession(Stream fitStream, string? fileName, long fileLength)
+    public async Task<CreateSessionResult> CreateSessionAsync(
+        Stream fitStream,
+        string? fileName,
+        long fileLength,
+        CancellationToken cancellationToken)
     {
         if (fileLength <= 0)
         {
@@ -55,7 +62,7 @@ public sealed class SessionService : ISessionService
                 Error: "The uploaded file could not be parsed as a valid FIT activity.");
         }
 
-        var storedSession = _sessionRepository.AddSession(session);
+        var storedSession = await _sessionRepository.AddSessionAsync(session, cancellationToken);
 
         return new CreateSessionResult(
             CreateSessionState.Stored,
@@ -117,12 +124,13 @@ public sealed class SessionService : ISessionService
         return new Session(
             Id: Guid.NewGuid(),
             Name: GetSessionName(session, fallbackName),
-            TotalDistance: totalDistance,
-            TotalTime: totalTime is null ? null : TimeSpan.FromSeconds(totalTime.Value),
-            AveragePace: GetPace(totalDistance, totalTime),
-            StartTime: session?.GetStartTime()?.GetDateTime(),
-            Timestamp: session?.GetTimestamp()?.GetDateTime(),
-            CreatedAt: System.DateTime.UtcNow,
+            TotalDistance: totalDistance ?? 0,
+            TotalDuration: totalTime is null ? TimeSpan.Zero : TimeSpan.FromSeconds(totalTime.Value),
+            AveragePace: GetPace(totalDistance, totalTime) ?? TimeSpan.Zero,
+            AverageHeartRate: session?.GetAvgHeartRate(),
+            MaxHeartRate: session?.GetMaxHeartRate(),
+            StartTime: ToUtcDateTimeOffset(session?.GetStartTime()?.GetDateTime()) ?? DateTimeOffset.UtcNow,
+            CreatedAt: DateTimeOffset.UtcNow,
             RunIntervals: intervals);
     }
 
@@ -134,6 +142,20 @@ public sealed class SessionService : ISessionService
         }
 
         return TimeSpan.FromSeconds(duration.Value / (distance.Value / 1000));
+    }
+
+    private static DateTimeOffset? ToUtcDateTimeOffset(System.DateTime? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        var dateTime = value.Value.Kind == DateTimeKind.Unspecified
+            ? System.DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            : value.Value.ToUniversalTime();
+
+        return new DateTimeOffset(dateTime, TimeSpan.Zero);
     }
 
     private static string GetSessionName(SessionMesg? session, string? fallbackName)
