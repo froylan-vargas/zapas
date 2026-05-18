@@ -17,8 +17,8 @@ public class ZapasDbContext : DbContext
         modelBuilder.Entity<SessionEntity>(entity =>
         {
             entity.ToTable("Sessions");
-           entity.HasKey(e => e.Id);
-           entity.Property(e => e.Name).HasMaxLength(200);
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.StartTime)
                   .HasConversion(
                       value => value.ToUnixTimeMilliseconds(),
@@ -29,7 +29,7 @@ public class ZapasDbContext : DbContext
                       value => value.ToUnixTimeMilliseconds(),
                       value => DateTimeOffset.FromUnixTimeMilliseconds(value))
                   .IsRequired();
-           entity.Property(e => e.AveragePaceSecondsPerKm).IsRequired();
+            entity.Property(e => e.AveragePaceSecondsPerKm).IsRequired();
             entity.HasMany(e => e.Intervals)
                   .WithOne(i => i.Session)
                   .HasForeignKey(i => i.SessionId)

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Zapas.Api.DTOs;
 using Zapas.Api.Services;
 
@@ -44,6 +45,8 @@ public sealed class SessionsController : ControllerBase
         return Ok(SessionDto.FromModel(session));
     }
 
+    [RequestSizeLimit(3 * 1024 * 1024)]
+    [EnableRateLimiting("session-upload")]
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> CreateSession(IFormFile? file, CancellationToken cancellationToken)

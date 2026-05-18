@@ -3,10 +3,32 @@ using Zapas.Api.Middleware;
 using Zapas.Api.Data;
 using Zapas.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("session-upload", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
+builder.Services
+    .AddHealthChecks()
+    .AddDbContextCheck<ZapasDbContext>();
+
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
@@ -28,8 +50,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseHttpsRedirection();
 
 app.MapControllers();
+app.UseRateLimiter();
+app.MapHealthChecks("/health");
 
 app.Run();

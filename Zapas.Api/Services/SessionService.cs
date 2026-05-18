@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Dynastream.Fit;
 using Zapas.Api.DTOs;
 using Zapas.Api.Models;
@@ -7,11 +8,20 @@ namespace Zapas.Api.Services;
 
 public sealed class SessionService : ISessionService
 {
+    private static readonly TimeSpan SessionCacheDuration = TimeSpan.FromMinutes(5);
+    private const long MaxFitFileSizeBytes = 10 * 1024 * 1024;
     private readonly ISessionRepository _sessionRepository;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<SessionService> _logger;
 
-    public SessionService(ISessionRepository sessionRepository)
+    public SessionService(
+        ISessionRepository sessionRepository,
+        IMemoryCache cache,
+        ILogger<SessionService> logger)
     {
         _sessionRepository = sessionRepository;
+        _cache = cache;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<SessionSummary>> GetSessionsAsync(
@@ -23,7 +33,30 @@ public sealed class SessionService : ISessionService
 
     public async Task<Session?> GetSessionByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _sessionRepository.GetSessionByIdAsync(id, cancellationToken);
+        var cacheKey = $"session:{id}";
+        if (_cache.TryGetValue(cacheKey, out Session? cachedSession))
+        {
+            _logger.LogInformation("Session cache hit for {SessionId}", id);
+            return cachedSession;
+        }
+
+        _logger.LogInformation("Session cache miss for {SessionId}", id);
+
+        var session = await _sessionRepository.GetSessionByIdAsync(id, cancellationToken);
+
+        if (session is not null)
+        {
+            _cache.Set(
+                cacheKey,
+                session,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = SessionCacheDuration
+                }
+            );
+        }
+
+        return session;
     }
 
     public async Task<CreateSessionResult> CreateSessionAsync(
@@ -48,7 +81,19 @@ public sealed class SessionService : ISessionService
                 Error: "Only .fit files are supported.");
         }
 
+        if (fileLength > MaxFitFileSizeBytes)
+        {
+            return new CreateSessionResult(
+                CreateSessionState.Rejected,
+                Session: null,
+                Error: "The uploaded file is too large.");
+        }
+
         Session session;
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var parsedStartedAt = TimeProvider.System.GetTimestamp();
 
         try
         {
@@ -61,13 +106,29 @@ public sealed class SessionService : ISessionService
                 Session: null,
                 Error: "The uploaded file could not be parsed as a valid FIT activity.");
         }
+        finally
+        {
+            var elapsed = TimeProvider.System.GetElapsedTime(parsedStartedAt);
+            _logger.LogInformation("Parsed FIT file in {ElapsedSeconds} ms for {FileName}", elapsed.TotalMicroseconds, fileName);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var storedSession = await _sessionRepository.AddSessionAsync(session, cancellationToken);
 
-        return new CreateSessionResult(
-            CreateSessionState.Stored,
+        _cache.Set(
+            $"session:{storedSession.Id}",
             storedSession,
-            Error: null);
+            new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = SessionCacheDuration
+            }
+        );
+
+        return new CreateSessionResult(
+        CreateSessionState.Stored,
+        storedSession,
+        Error: null);
     }
 
     public Session ExtractSessionInfo(Stream fitStream, string? fallbackName = null)
