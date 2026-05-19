@@ -32,6 +32,7 @@ builder.Services
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+builder.Services.AddScoped<IFitSessionParser, FitSessionParser>();
 
 builder.Services.AddDbContext<ZapasDbContext>(options =>
 {
@@ -52,9 +53,10 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseHttpsRedirection();
-
-app.MapControllers();
 app.UseRateLimiter();
+app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program;

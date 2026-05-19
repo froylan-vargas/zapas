@@ -24,6 +24,33 @@
         "${workspaceFolder}/Zapas.slnx"
       ],
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "new C# class (file-scoped namespace)",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "new",
+        "class",
+        "-n",
+        "${input:className}",
+        "-o",
+        "${workspaceFolder}/${input:classFolder}"
+      ],
+      "problemMatcher": "$msCompile"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "className",
+      "type": "promptString",
+      "description": "Class name, without .cs"
+    },
+    {
+      "id": "classFolder",
+      "type": "promptString",
+      "description": "Folder relative to the workspace root",
+      "default": "Zapas.Api/Services"
     }
   ]
 }

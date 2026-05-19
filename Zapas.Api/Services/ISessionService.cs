@@ -15,6 +15,4 @@ public interface ISessionService
         string? fileName,
         long fileLength,
         CancellationToken cancellationToken);
-
-    Session ExtractSessionInfo(Stream fitStream, string? fallbackName = null);
 }
