@@ -1,9 +1,10 @@
-using Zapas.Api.Services;
 using Zapas.Api.Middleware;
 using Zapas.Api.Data;
 using Zapas.Api.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
+using Zapas.Api.Services.FitParser;
+using Zapas.Api.Services.Sessions;
 
 var builder = WebApplication.CreateBuilder(args);
 

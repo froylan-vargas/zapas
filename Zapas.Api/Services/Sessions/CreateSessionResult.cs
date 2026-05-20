@@ -1,6 +1,6 @@
 using Zapas.Api.Models;
 
-namespace Zapas.Api.Services;
+namespace Zapas.Api.Services.Sessions;
 
 public sealed record CreateSessionResult(
     CreateSessionState State,

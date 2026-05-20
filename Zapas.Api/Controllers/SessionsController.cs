@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Zapas.Api.DTOs;
-using Zapas.Api.Services;
+using Zapas.Api.Services.Sessions;
 
 namespace Zapas.Api.Controllers;
 
@@ -28,7 +28,7 @@ public sealed class SessionsController : ControllerBase
         _logger.LogInformation("Fetching sessions");
         var sessions = await _sessionService.GetSessionsAsync(request, cancellationToken);
         return Ok(sessions
-            .Select(SessionSummaryDto.FromModel)
+            .Select(session => session.ToDto())
             .ToList());
     }
 
@@ -42,7 +42,7 @@ public sealed class SessionsController : ControllerBase
             return NotFound();
         }
 
-        return Ok(SessionDto.FromModel(session));
+        return Ok(session.ToDto());
     }
 
     [RequestSizeLimit(3 * 1024 * 1024)]
@@ -77,7 +77,7 @@ public sealed class SessionsController : ControllerBase
     {
         return new CreateSessionResponseDto(
             State: result.State.ToString(),
-            Session: result.Session is null ? null : SessionDto.FromModel(result.Session),
+            Session: result.Session?.ToDto(),
             Error: result.Error);
     }
 }

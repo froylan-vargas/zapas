@@ -3,7 +3,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Zapas.Api.Repositories;
-using Zapas.Api.Services;
+using Zapas.Api.Services.FitParser;
+using Zapas.Api.Services.Sessions;
 
 namespace Zapas.Api.Tests.Services;
 

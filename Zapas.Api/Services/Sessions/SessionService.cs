@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Caching.Memory;
-using Dynastream.Fit;
 using Zapas.Api.DTOs;
 using Zapas.Api.Models;
 using Zapas.Api.Repositories;
+using Zapas.Api.Services.FitParser;
 
-namespace Zapas.Api.Services;
+namespace Zapas.Api.Services.Sessions;
 
 public sealed class SessionService : ISessionService
 {

@@ -1,4 +1,4 @@
-namespace Zapas.Api.Services;
+namespace Zapas.Api.Services.Sessions;
 
 public enum CreateSessionState
 {

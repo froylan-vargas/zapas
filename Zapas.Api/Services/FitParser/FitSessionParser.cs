@@ -1,7 +1,7 @@
 using Dynastream.Fit;
 using Zapas.Api.Models;
 
-namespace Zapas.Api.Services;
+namespace Zapas.Api.Services.FitParser;
 
 public class FitSessionParser : IFitSessionParser
 {
@@ -48,7 +48,9 @@ public class FitSessionParser : IFitSessionParser
                 Duration: TimeSpan.FromSeconds(duration.Value),
                 AverageHeartRate: lap.GetAvgHeartRate(),
                 MaxHeartRate: lap.GetMaxHeartRate(),
-                Pace: TimeSpan.FromSeconds(duration.Value / (distance.Value / 1000))));
+                Pace: distance is not null && duration is not null ?
+                    RunningMetrics.CalculatePace(distance.Value, duration.Value)
+                        ?? TimeSpan.Zero : TimeSpan.Zero));
         };
 
         decoder.Read(fitStream);
@@ -61,22 +63,13 @@ public class FitSessionParser : IFitSessionParser
             Name: GetSessionName(session, fallbackName),
             TotalDistance: totalDistance ?? 0,
             TotalDuration: totalTime is null ? TimeSpan.Zero : TimeSpan.FromSeconds(totalTime.Value),
-            AveragePace: GetPace(totalDistance, totalTime) ?? TimeSpan.Zero,
+            AveragePace: totalDistance is not null && totalTime is not null ?
+            RunningMetrics.CalculatePace(totalDistance.Value, totalTime.Value) ?? TimeSpan.Zero : TimeSpan.Zero,
             AverageHeartRate: session?.GetAvgHeartRate(),
             MaxHeartRate: session?.GetMaxHeartRate(),
             StartTime: ToUtcDateTimeOffset(session?.GetStartTime()?.GetDateTime()) ?? DateTimeOffset.UtcNow,
             CreatedAt: DateTimeOffset.UtcNow,
             RunIntervals: intervals);
-    }
-
-    internal static TimeSpan? GetPace(float? distance, float? duration)
-    {
-        if (distance is null || duration is null || distance <= 0 || duration <= 0)
-        {
-            return null;
-        }
-
-        return TimeSpan.FromSeconds(duration.Value / (distance.Value / 1000));
     }
 
     private static DateTimeOffset? ToUtcDateTimeOffset(System.DateTime? value)

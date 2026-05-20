@@ -1,7 +1,7 @@
 using Zapas.Api.DTOs;
 using Zapas.Api.Models;
 
-namespace Zapas.Api.Services;
+namespace Zapas.Api.Services.Sessions;
 
 public interface ISessionService
 {
