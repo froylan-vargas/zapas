@@ -59,6 +59,7 @@ public sealed class SessionsControllerTests : IClassFixture<ZapasApiFactory>
         dbContext.Sessions.Add(new SessionEntity
         {
             Id = Guid.NewGuid(),
+            OwnerUserId = "test-user",
             Name = "Seeded run",
             StartTime = DateTimeOffset.UtcNow,
             TotalDistanceMeters = 5000,

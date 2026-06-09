@@ -60,6 +60,7 @@ public class FitSessionParser : IFitSessionParser
 
         return new Session(
             Id: Guid.NewGuid(),
+            OwnerUserId: string.Empty,
             Name: GetSessionName(session, fallbackName),
             TotalDistance: totalDistance ?? 0,
             TotalDuration: totalTime is null ? TimeSpan.Zero : TimeSpan.FromSeconds(totalTime.Value),

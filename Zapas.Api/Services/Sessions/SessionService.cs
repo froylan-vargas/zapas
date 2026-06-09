@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using Zapas.Api.DTOs;
 using Zapas.Api.Models;
+using Zapas.Api.Options;
 using Zapas.Api.Repositories;
+using Zapas.Api.Services.CurrentUser;
 using Zapas.Api.Services.FitParser;
 
 namespace Zapas.Api.Services.Sessions;
@@ -9,22 +12,27 @@ namespace Zapas.Api.Services.Sessions;
 public sealed class SessionService : ISessionService
 {
     private static readonly TimeSpan SessionCacheDuration = TimeSpan.FromMinutes(5);
-    private const long MaxFitFileSizeBytes = 3 * 1024 * 1024;
     private readonly ISessionRepository _sessionRepository;
     private readonly IFitSessionParser _fitSessionParser;
+    private readonly ICurrentUser _currentUser;
     private readonly IMemoryCache _cache;
     private readonly ILogger<SessionService> _logger;
+    private readonly UploadOptions _uploadOptions;
 
     public SessionService(
         ISessionRepository sessionRepository,
         IFitSessionParser fitSessionParser,
+        IOptions<UploadOptions> uploadOptions,
+        ICurrentUser currentUser,
         IMemoryCache cache,
         ILogger<SessionService> logger)
     {
         _sessionRepository = sessionRepository;
         _fitSessionParser = fitSessionParser;
+        _currentUser = currentUser;
         _cache = cache;
         _logger = logger;
+        _uploadOptions = uploadOptions.Value;
     }
 
     public async Task<IReadOnlyList<SessionSummary>> GetSessionsAsync(
@@ -68,6 +76,11 @@ public sealed class SessionService : ISessionService
         long fileLength,
         CancellationToken cancellationToken)
     {
+        if (!_currentUser.IsAuthenticated || string.IsNullOrEmpty(_currentUser.UserId))
+        {
+            throw new UnauthorizedAccessException("An authenticated user is required");
+        }
+
         if (fileLength <= 0)
         {
             return new CreateSessionResult(
@@ -76,7 +89,11 @@ public sealed class SessionService : ISessionService
                 Error: "A non-empty .fit file is required.");
         }
 
-        if (!string.Equals(Path.GetExtension(fileName), ".fit", StringComparison.OrdinalIgnoreCase))
+        var extension = Path.GetExtension(fileName);
+
+        if (!_uploadOptions.AllowedExtensions.Contains(
+            extension,
+            StringComparer.OrdinalIgnoreCase))
         {
             return new CreateSessionResult(
                 CreateSessionState.Rejected,
@@ -84,7 +101,7 @@ public sealed class SessionService : ISessionService
                 Error: "Only .fit files are supported.");
         }
 
-        if (fileLength > MaxFitFileSizeBytes)
+        if (fileLength > _uploadOptions.MaxFitFileSizeBytes)
         {
             return new CreateSessionResult(
                 CreateSessionState.Rejected,
@@ -92,18 +109,24 @@ public sealed class SessionService : ISessionService
                 Error: "The uploaded file is too large.");
         }
 
-        Session session;
-
         cancellationToken.ThrowIfCancellationRequested();
 
+        Session parsedSession;
         var parsedStartedAt = TimeProvider.System.GetTimestamp();
 
         try
         {
-            session = _fitSessionParser.Parse(fitStream, fileName);
+            parsedSession = _fitSessionParser.Parse(fitStream, fileName);
         }
-        catch
+        catch (InvalidDataException ex)
         {
+            _logger.LogWarning(
+                ex,
+                "Failed to parse FIT upload {FileName} with size {FileSizeBytes}.",
+                fileName,
+                fileLength
+            );
+
             return new CreateSessionResult(
                 CreateSessionState.Failed,
                 Session: null,
@@ -114,6 +137,11 @@ public sealed class SessionService : ISessionService
             var elapsed = TimeProvider.System.GetElapsedTime(parsedStartedAt);
             _logger.LogInformation("Parsed FIT file in {ElapsedSeconds} ms for {FileName}", elapsed.TotalMicroseconds, fileName);
         }
+
+        var session = parsedSession with
+        {
+            OwnerUserId = _currentUser.UserId,
+        };
 
         cancellationToken.ThrowIfCancellationRequested();
 

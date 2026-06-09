@@ -3,7 +3,9 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Zapas.Api.Models;
+using Zapas.Api.Options;
 using Zapas.Api.Repositories;
+using Zapas.Api.Services.CurrentUser;
 using Zapas.Api.Services.FitParser;
 using Zapas.Api.Services.Sessions;
 
@@ -16,15 +18,19 @@ public sealed class SessionServiceCachingTests
     {
         var repository = Substitute.For<ISessionRepository>();
         var fitSessionParser = Substitute.For<IFitSessionParser>();
+        var currentUser = Substitute.For<ICurrentUser>();
         var cache = new MemoryCache(new MemoryCacheOptions());
         var service = new SessionService(
             repository,
             fitSessionParser,
+            Microsoft.Extensions.Options.Options.Create(new UploadOptions()),
+            currentUser,
             cache,
             NullLogger<SessionService>.Instance);
 
         var session = new Session(
             Id: Guid.NewGuid(),
+            OwnerUserId: "user-1",
             Name: "Morning run",
             TotalDistance: 5000,
             TotalDuration: TimeSpan.FromMinutes(25),

@@ -2,7 +2,9 @@ using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Zapas.Api.Options;
 using Zapas.Api.Repositories;
+using Zapas.Api.Services.CurrentUser;
 using Zapas.Api.Services.FitParser;
 using Zapas.Api.Services.Sessions;
 
@@ -12,6 +14,7 @@ public sealed class SessionServiceValidationTests
 {
     private readonly ISessionRepository _repository = Substitute.For<ISessionRepository>();
     private readonly IFitSessionParser _fitSessionParser = Substitute.For<IFitSessionParser>();
+    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
     private readonly SessionService _service;
 
     public SessionServiceValidationTests()
@@ -19,8 +22,13 @@ public sealed class SessionServiceValidationTests
         _service = new SessionService(
             _repository,
             _fitSessionParser,
+            Microsoft.Extensions.Options.Options.Create(new UploadOptions()),
+            _currentUser,
             new MemoryCache(new MemoryCacheOptions()),
             NullLogger<SessionService>.Instance);
+
+        _currentUser.IsAuthenticated.Returns(true);
+        _currentUser.UserId.Returns("user-1");
     }
 
     [Fact]

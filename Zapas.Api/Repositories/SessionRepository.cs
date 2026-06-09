@@ -4,22 +4,26 @@ using Zapas.Api.DTOs;
 using Zapas.Api.Entities;
 using Zapas.Api.Extensions;
 using Zapas.Api.Models;
+using Zapas.Api.Services.CurrentUser;
 
 namespace Zapas.Api.Repositories;
 
 public class SessionRepository : ISessionRepository
 {
     private readonly ZapasDbContext _dbContext;
+    private readonly ICurrentUser _currentUser;
 
-    public SessionRepository(ZapasDbContext dbContext)
+    public SessionRepository(ZapasDbContext dbContext, ICurrentUser currentUser)
     {
         _dbContext = dbContext;
+        _currentUser = currentUser;
     }
     public async Task<Session> AddSessionAsync(Session session, CancellationToken cancellationToken)
     {
         var entity = new SessionEntity
         {
             Id = session.Id,
+            OwnerUserId = session.OwnerUserId,
             Name = session.Name,
             StartTime = session.StartTime,
             TotalDistanceMeters = session.TotalDistance,
@@ -59,6 +63,11 @@ public class SessionRepository : ISessionRepository
         var query = _dbContext.Sessions
             .AsNoTracking()
             .AsQueryable();
+
+        if (!_currentUser.IsInRole("Admin"))
+        {
+            query = query.Where(session => session.OwnerUserId == _currentUser.UserId);
+        }
 
         if (request.From is not null)
         {
@@ -118,6 +127,7 @@ public class SessionRepository : ISessionRepository
     {
         return new Session(
             entity.Id,
+            entity.OwnerUserId,
             entity.Name ?? "Unknown session",
             entity.TotalDistanceMeters,
             entity.TotalDuration,

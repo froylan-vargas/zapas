@@ -3,6 +3,7 @@ namespace Zapas.Api.Entities;
 public sealed class SessionEntity
 {
     public Guid Id { get; set; }
+    public string OwnerUserId { get; set; } = string.Empty;
     public string? Name { get; set; }
     public DateTimeOffset StartTime { get; set; }
     public double TotalDistanceMeters { get; set; }

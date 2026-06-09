@@ -2,6 +2,7 @@ namespace Zapas.Api.Models;
 
 public sealed record Session(
     Guid Id,
+    string OwnerUserId,
     string Name,
     double TotalDistance,
     TimeSpan TotalDuration,

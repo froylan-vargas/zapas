@@ -1,10 +1,12 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using Zapas.Api.Data;
 using Zapas.Api.DTOs;
 using Zapas.Api.Models;
 using Zapas.Api.Repositories;
+using Zapas.Api.Services.CurrentUser;
 
 namespace Zapas.Api.Tests.Repositories;
 
@@ -12,6 +14,7 @@ public sealed class SessionRepositoryTests
 {
     private readonly SqliteConnection _connection;
     private readonly ZapasDbContext _dbContext;
+    private readonly ICurrentUser _currentUser;
     private readonly SessionRepository _repository;
 
     public SessionRepositoryTests()
@@ -26,7 +29,11 @@ public sealed class SessionRepositoryTests
         _dbContext = new ZapasDbContext(options);
         _dbContext.Database.EnsureCreated();
 
-        _repository = new SessionRepository(_dbContext);
+        _currentUser = Substitute.For<ICurrentUser>();
+        _currentUser.UserId.Returns("user-1");
+        _currentUser.IsInRole("Admin").Returns(false);
+
+        _repository = new SessionRepository(_dbContext, _currentUser);
     }
 
     [Fact]
@@ -34,6 +41,7 @@ public sealed class SessionRepositoryTests
     {
         var session = new Session(
             Id: Guid.NewGuid(),
+            OwnerUserId: "user-1",
             Name: "Intervals",
             TotalDistance: 1000,
             TotalDuration: TimeSpan.FromMinutes(4),
@@ -58,6 +66,7 @@ public sealed class SessionRepositoryTests
 
         stored.Should().NotBeNull();
         stored!.Name.Should().Be("Intervals");
+        stored.OwnerUserId.Should().Be("user-1");
         stored.RunIntervals.Should().HaveCount(1);
     }
 
@@ -90,6 +99,7 @@ public sealed class SessionRepositoryTests
     {
         return new Session(
             Id: Guid.NewGuid(),
+            OwnerUserId: "user-1",
             Name: name,
             TotalDistance: 5000,
             TotalDuration: TimeSpan.FromMinutes(25),

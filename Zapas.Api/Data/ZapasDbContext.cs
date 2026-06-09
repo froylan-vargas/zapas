@@ -18,6 +18,7 @@ public class ZapasDbContext : DbContext
         {
             entity.ToTable("Sessions");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.OwnerUserId).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.StartTime)
                   .HasConversion(
@@ -35,6 +36,7 @@ public class ZapasDbContext : DbContext
                   .HasForeignKey(i => i.SessionId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.StartTime);
+            entity.HasIndex(e => e.OwnerUserId);
         });
 
         modelBuilder.Entity<RunIntervalEntity>(entity =>
