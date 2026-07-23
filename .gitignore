@@ -2,8 +2,8 @@
 bin/
 obj/
 out/
-artifacts/
 TestResults/
+.artifacts/
 
 # Documentation
 

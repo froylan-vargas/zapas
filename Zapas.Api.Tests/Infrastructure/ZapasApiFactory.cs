@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Zapas.Api.Data;
 
 namespace Zapas.Api.Tests.Infrastructure;
@@ -18,13 +20,8 @@ public sealed class ZapasApiFactory : WebApplicationFactory<Program>, IDisposabl
 
         builder.ConfigureServices(services =>
         {
-            var descriptor = services.SingleOrDefault(
-                service => service.ServiceType == typeof(DbContextOptions<ZapasDbContext>));
-
-            if (descriptor is not null)
-            {
-                services.Remove(descriptor);
-            }
+            services.RemoveAll<DbContextOptions<ZapasDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<ZapasDbContext>>();
 
             services.AddDbContext<ZapasDbContext>(options =>
             {

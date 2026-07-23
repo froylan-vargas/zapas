@@ -11,14 +11,14 @@ using Zapas.Api.Data;
 namespace Zapas.Api.Migrations
 {
     [DbContext(typeof(ZapasDbContext))]
-    [Migration("20260505173620_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260723191658_Initial Migration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
 
             modelBuilder.Entity("Zapas.Api.Entities.RunIntervalEntity", b =>
                 {
@@ -66,7 +66,7 @@ namespace Zapas.Api.Migrations
                     b.Property<double>("AveragePaceSecondsPerKm")
                         .HasColumnType("REAL");
 
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                    b.Property<long>("CreatedAtUtc")
                         .HasColumnType("INTEGER");
 
                     b.Property<byte?>("MaxHeartRate")
@@ -76,7 +76,12 @@ namespace Zapas.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("StartTime")
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("StartTime")
                         .HasColumnType("INTEGER");
 
                     b.Property<double>("TotalDistanceMeters")
@@ -86,6 +91,8 @@ namespace Zapas.Api.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.HasIndex("StartTime");
 
