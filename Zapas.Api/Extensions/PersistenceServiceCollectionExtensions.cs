@@ -16,7 +16,9 @@ public static class PersistenceServiceCollectionExtensions
 
         services
             .AddHealthChecks()
-            .AddDbContextCheck<ZapasDbContext>();
+            .AddDbContextCheck<ZapasDbContext>(
+                name: "zapas-database",
+                tags: ["ready"]);
 
         return services;
     }
