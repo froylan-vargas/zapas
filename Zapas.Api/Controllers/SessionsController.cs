@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Zapas.Api.DTOs;
+using Zapas.Api.Policies;
 using Zapas.Api.Services.Sessions;
 
 namespace Zapas.Api.Controllers;
 
-[Authorize(Policy = "CanReadSessions")]
+[Authorize(Policy = PolicyNames.CanReadSessions)]
 [ApiController]
 [Route("sessions")]
 public sealed class SessionsController : ControllerBase
@@ -47,9 +48,9 @@ public sealed class SessionsController : ControllerBase
         return Ok(session.ToDto());
     }
 
-    [Authorize(Policy = "CanUploadSession")]
+    [Authorize(Policy = PolicyNames.CanUploadSession)]
     [RequestSizeLimit(3 * 1024 * 1024)]
-    [EnableRateLimiting("session-upload")]
+    [EnableRateLimiting(PolicyNames.SessionUploadRateLimit)]
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> CreateSession(IFormFile? file, CancellationToken cancellationToken)
